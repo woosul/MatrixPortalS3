@@ -1,6 +1,5 @@
 # ESP32-S3 Matrix Portal Display System
 
-
 [![PlatformIO CI](https://img.shields.io/badge/PlatformIO-CI-orange)](https://platformio.org/)
 [![ESP32-S3](https://img.shields.io/badge/ESP32--S3-compatible-green)](https://www.espressif.com/en/products/socs/esp32-s3)
 ![ESP32-S3 Matrix Portal](https://img.shields.io/badge/ESP32--S3%20Matrix%20Portal-Display-blue)
