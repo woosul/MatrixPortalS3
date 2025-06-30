@@ -1,0 +1,15 @@
+{
+    "deviceId": "S3YC603",
+    "deviceNo": "603",
+    "wifiSsid": "MARS",
+    "wifiPass": "52545856",
+    "mqttServer": "mqtt.unoware.com",
+    "mqttPort": 2883,
+    "mqttTopic": "rfid/yc603",
+    "panelBrightness": 128,
+    "buzzerVolume": 40,
+    "idleTimeoutMqtt": 60000,
+    "globalIdleTimeoutMs": 300000,
+    "defaultInitialDisplayMode": "6.4",
+    "defaultPendingMode": "1.0"
+}

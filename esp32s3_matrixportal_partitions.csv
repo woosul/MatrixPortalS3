@@ -1,0 +1,10 @@
+# Name,   Type, SubType, Offset,   Size,     Flags
+# Notes:
+# app0: 2MB for application
+# app1: 2MB for OTA
+# storage: ~3.68MB for littlefs, ends at 0x7FFFFF (assuming 8MB total flash for ESP32-S3)
+nvs,      data, nvs,     0x9000,   0x5000,
+otadata,  data, ota,     0xe000,   0x2000,
+app0,     app,  ota_0,   0x10000,  0x200000,
+app1,     app,  ota_1,   0x210000, 0x200000,
+storage,  data, ,        0x450000, 0x3B0000,
