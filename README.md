@@ -1,2 +1,2 @@
-# 206_MatrixPortal_S3
+# RFID LOCAL STATION with Adafruit Matrix Portal S3
 Arduino Project
