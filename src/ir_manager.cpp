@@ -87,7 +87,7 @@ void IRManager::setReceiveMode(IRReceiveMode mode) {
 
 // Main update function for the non-blocking IR state machine.
 // This function should be called frequently in the main loop().
-void IRManager::update() {
+void IRManager::updateReadNonBlocking() {
     if (currentReceiveMode == IRReceiveMode::NEC_NON_BLOCKING) {
         unsigned long currentTime_us = micros();
         bool currentPinState = digitalRead(irPin);
@@ -337,7 +337,7 @@ bool IRManager::hasNewCommand() {
 }
 // Get the last successfully decoded IR command code (command byte only).
 uint32_t IRManager::getLastCommand() {
-    return lastCommand & 0xFF;
+    return lastCommand & 0xFF; // Return only the command byte (last 8 bits).
 }
 
 // Clear the new command available flag after the command has been processed by the main loop.

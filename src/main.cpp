@@ -1,5 +1,5 @@
 /**
- * @file main.cpp
+ * @file main.cppㅔㅑ
  * @brief RFID local station with Adafruit Matrix Portal S3
  *
  * Multi-mode LED matrix display system supporting:
@@ -658,7 +658,7 @@ void loop() {
     // Check if the IRManager has a new command
     if (irManager.getCurrentReceiveMode() == IRManager::IRReceiveMode::NEC_NON_BLOCKING) {
         // Update IR reception state machine (non-blocking) for NEC mode
-        irManager.update();
+        irManager.updateReadNonBlocking();
     } else if (irManager.getCurrentReceiveMode() == IRManager::IRReceiveMode::YAHBOOM_BLOCKING) {
         // For RAW_BLOCKING mode, explicitly call readRawBlockingCode.
         // This call is blocking. Consider calling it less frequently or based on specific triggers.

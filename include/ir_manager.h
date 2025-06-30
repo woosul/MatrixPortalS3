@@ -31,7 +31,7 @@ public:
     };
 
     void setup(Utils* utils_ptr);
-    void update(); // Primarily for NEC_NON_BLOCKING mode
+    void updateReadNonBlocking(); // Primarily for NEC_NON_BLOCKING mode
     bool hasNewCommand();
     uint32_t getLastCommand();
     void clearCommand();

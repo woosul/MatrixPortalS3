@@ -16,10 +16,10 @@ void ModeIRScan::setup(Utils* utils_ptr, MatrixPanel_I2S_DMA* matrix_ptr, IRMana
     m_irManager = irManager_ptr;
     
     learningState = READY;
-    selectedMode = YAHBOOM_BLOCKING_MODE;   // 기본값은 블로킹 모드
+    selectedMode = YAHBOOM_BLOCKING_MODE; 
     totalLearnedKeys = 0;
-    
-    // 키 배열 초기화
+
+    // Learned key array initialization
     for (int i = 0; i < 50; i++) {
         keys[i].isValid = false;
         strcpy(keys[i].keyName, "");
@@ -31,12 +31,12 @@ void ModeIRScan::setup(Utils* utils_ptr, MatrixPanel_I2S_DMA* matrix_ptr, IRMana
 
 void ModeIRScan::run() {
     if (isFirstRun) {
-        updateDisplay();  // run()에서 초기 READY 상태 표시
+        updateDisplay();  // Display initial "READY" state in run()
         showGuide();
         isFirstRun = false;
     }
-    
-    // READY 상태에서는 시리얼 입력만 처리하고 main에서 제어되는 IR 신호를 수신할 수 있도록 함
+
+    // Process READY state: Only serial input is handled, and IR signals controlled by the main are received.
     if (learningState == READY) {
         if (Serial.available()) {
             String input = Serial.readStringUntil('\n');
@@ -46,13 +46,12 @@ void ModeIRScan::run() {
         }
         updateDisplay();
     } else {
-        // SCAN 명령어를 통해서만 runInternalLoop 진입
+        // Enter SCAN mode only through the SCAN command
         runInternalLoop();
     }
 }
 
 void ModeIRScan::runInternalLoop() {
-    // READY 상태가 아닐 때만 처리
     if (learningState == EXIT_MODE) {
         return;
     }
@@ -72,7 +71,7 @@ void ModeIRScan::runInternalLoop() {
 }
 
 void ModeIRScan::processUserInput(const String& input) {
-    // 전역 명령어 - 언제든지 입력 가능
+    // Global commands : can input at any time (in input)
     if (input == "SUMMARY") {
         showSummary();
         return;
@@ -117,7 +116,7 @@ void ModeIRScan::processUserInput(const String& input) {
             handleDuplicateChoice(input);
             break;
         case SCAN:
-            // SCAN 상태에서는 IR 신호만 대기
+            // Ready to receive IR signals in SCAN state
             Serial.println("Waiting for IR signal... Use DONE to cancel.");
             break;
         default:
@@ -148,9 +147,9 @@ void ModeIRScan::startScanMode() {
 
 void ModeIRScan::handleModeCommand() {
     learningState = MODE_SELECT;
-    const char* currentModeStr = (selectedMode == YAHBOOM_BLOCKING_MODE) ? "Blocking" : "Non-blocking";
+    const char* currentModeStr = (selectedMode == YAHBOOM_BLOCKING_MODE) ? "YAHBOOM-Blocking" : "NEC-Non-blocking";
     Serial.printf("Current mode: %s\n", currentModeStr);
-    Serial.println("Select mode: 1=Blocking, 2=Non-blocking");
+    Serial.println("Select mode: 1=YAHBOOM-Blocking, 2=NEC-Non-blocking");
     Serial.println("-----------------------------------------------------------");
     showPrompt();
 }
@@ -158,10 +157,10 @@ void ModeIRScan::handleModeCommand() {
 void ModeIRScan::handleModeSelection(const String& input) {
     if (input == "1") {
         selectedMode = YAHBOOM_BLOCKING_MODE;
-        Serial.println("Blocking mode selected");
+        Serial.println("YAHBOOM-Blocking mode selected");
     } else if (input == "2") {
         selectedMode = NEC_NON_BLOCKING_MODE;
-        Serial.println("Non-blocking mode selected");
+        Serial.println("NEC-Non-blocking mode selected");
     } else {
         Serial.println("Invalid selection!");
         showPrompt();
@@ -208,7 +207,7 @@ void ModeIRScan::handleIRScan() {
     } else {
         m_irManager->setReceiveMode(IRManager::IRReceiveMode::NEC_NON_BLOCKING);
         m_irManager->enableScanMode(true);
-        m_irManager->update();
+        m_irManager->updateReadNonBlocking();
         
         if (m_irManager->hasNewCommand()) {
             receivedCode = m_irManager->getLastCommand();
@@ -223,7 +222,7 @@ void ModeIRScan::handleIRScan() {
 }
 
 void ModeIRScan::processReceivedCode(uint32_t code) {
-    // 중복 체크
+    // Duplicate check
     if (isDuplicateCode(code)) {
         Serial.printf("Warning: Code 0x%02X already exists!\n", code);
         duplicateIRCode = code;
@@ -232,8 +231,8 @@ void ModeIRScan::processReceivedCode(uint32_t code) {
         Serial.printf("Overwrite? (Y/N): ");
         return;
     }
-    
-    // 키 저장
+
+    // Store key
     if (storeKey(currentKeyName, code)) {
         Serial.printf("Key '%s' learned! (0x%02X)\n", currentKeyName, code);
         m_utils->playSingleTone();
@@ -269,11 +268,11 @@ bool ModeIRScan::isValidKeyName(const char* keyName) {
     if (!keyName || strlen(keyName) == 0 || strlen(keyName) >= 32) {
         return false;
     }
-    
-    // 첫 글자는 알파벳
-    if (!isalpha(keyName[0])) return false;
-    
-    // 나머지는 알파벳, 숫자, 언더스코어
+
+    // First character must be alphanumeric (alphabet or digit)
+    if (!isalnum(keyName[0])) return false;
+
+    // Remaining characters must be alphanumeric or underscore
     for (int i = 1; keyName[i]; i++) {
         if (!isalnum(keyName[i]) && keyName[i] != '_') {
             return false;
@@ -325,7 +324,7 @@ void ModeIRScan::showGuide() {
 }
 
 void ModeIRScan::showSummary() {
-    Serial.println("=== LEARNED KEYS ===");
+    Serial.println("------ LEARNED KEYS ------");
     if (totalLearnedKeys == 0) {
         Serial.println("No keys learned yet.");
     } else {
@@ -344,8 +343,8 @@ void ModeIRScan::updateCodes() {
         Serial.println("ERROR: IRManager not set!");
         return;
     }
-    
-    Serial.println("=== CONFIG.H IR_CODE_MAP FORMAT ===");
+
+    Serial.println("------ CONFIG.H IR_CODE_MAP FORMAT ------");
     if (totalLearnedKeys == 0) {
         Serial.println("No keys to update.");
     } else {
@@ -367,7 +366,7 @@ void ModeIRScan::updateCodes() {
 }
 
 void ModeIRScan::clearKeys() {
-    // 현재 세션의 키 저장소 초기화
+    // Initialize current session key storage (Keys)
     for (int i = 0; i < 50; i++) {
         keys[i].isValid = false;
         strcpy(keys[i].keyName, "");

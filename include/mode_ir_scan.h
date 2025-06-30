@@ -5,7 +5,7 @@
 #include "ir_manager.h"
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
-// 학습 상태 enum 정의
+// enum for learning state
 enum LearningState {
     READY,              // Ready state before initial waiting state
     KEY_INPUT,          // Waiting for key name input
@@ -15,13 +15,13 @@ enum LearningState {
     EXIT_MODE           // Exit current operation or mode
 };
 
-// IR 모드 enum 정의
+// enum for IR mode
 enum IRMode {
     YAHBOOM_BLOCKING_MODE,
     NEC_NON_BLOCKING_MODE
 };
 
-// 키 구조체 정의
+// Learned key structure
 struct LearnedKey {
     bool isValid;
     char keyName[32];
