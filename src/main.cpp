@@ -1,6 +1,6 @@
 /**
  * @file main.cpp
- * @brief Main application entry point for ESP32 Matrix Portal S3
+ * @brief RFID local station with Adafruit Matrix Portal S3
  *
  * Multi-mode LED matrix display system supporting:
  * - mode Clock : Digital clock with real-time updates
