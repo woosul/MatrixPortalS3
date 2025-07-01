@@ -45,7 +45,7 @@ void IRManager::setup(Utils* utils_ptr) {
         buttonMappings[i] = {IR_CODE_MAP[i].code, IR_CODE_MAP[i].name}; 
     }
 
-    Serial.println("IR Manager initialized (Non-blocking State Machine)");
+    Serial.println("\nIR Manager initialized (Non-blocking State Machine)");
     // Serial.printf("IR Receiver Pin: %d\n", irPin); // Log the actual pin number.
     // Serial.println("Using NEC protocol timing.");
     // Serial.println("Use enableScanMode(true) to scan IR codes");
@@ -231,9 +231,9 @@ void IRManager::enableSoundFeedback(bool enable) {
 void IRManager::enableScanMode(bool enable) {
     scanMode = enable;
     if (enable) {
-        Serial.println("=== IR SCAN MODE ENABLED ===");
-        Serial.println("Press buttons on remote to map codes...");
-        Serial.println("Use enableScanMode(false) to exit scan mode");
+        Serial.print("IR SCAN MODE >>> ");
+        // Serial.println("Press buttons on remote to map codes...");
+        // Serial.println("Use enableScanMode(false) to exit scan mode");
         
         // Play scan start tone if enabled and Utils is available.
         if (soundFeedbackEnabled) {
@@ -241,8 +241,8 @@ void IRManager::enableScanMode(bool enable) {
             else { Serial.println("WARNING: Utils not available for scan start tone!"); } 
         }
     } else {
-        Serial.println("=== IR SCAN MODE DISABLED ===");
-        Serial.println("Configured buttons:");
+        Serial.println("IR SCAN MODE DISABLED <<< ");
+        Serial.println("Configured buttons :");
         printCodeMappings(); // Print current mappings when exiting scan mode.
         
         // Play scan end tone if enabled and Utils is available.
@@ -442,13 +442,13 @@ void IRManager::readRawCodeYahboom(unsigned long timeout_ms) {
         lastReceiveTime = millis();
         Serial.printf("IR : Code 0x%02X received.\n", rawCommand);
         if (soundFeedbackEnabled && utils) utils->playSingleTone();
-        if (scanMode) {
-            Serial.printf("IR SCAN (YAHBOOM_BLOCKING): Code=0x%02X", rawCommand);
-            int buttonIndex = findButtonIndexByCode(rawCommand);
-            if (buttonIndex >= 0) Serial.printf(" -> %s", buttonMappings[buttonIndex].name);
-            else Serial.print(" -> UNKNOWN");
-            Serial.println();
-        }
+        // if (scanMode) {
+            // Serial.printf("IR SCAN (YAHBOOM_BLOCKING): Code=0x%02X", rawCommand);
+            // int buttonIndex = findButtonIndexByCode(rawCommand);
+            // if (buttonIndex >= 0) Serial.printf(" -> %s", buttonMappings[buttonIndex].name);
+            // else Serial.print(" -> UNKNOWN");
+            // Serial.println();
+        //}
     } else {
         Serial.printf("IR : Received potentially invalid data (0x%02X).\n", rawCommand);
         if (soundFeedbackEnabled && utils) utils->playErrorTone();

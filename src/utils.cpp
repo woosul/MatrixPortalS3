@@ -111,7 +111,7 @@ Utils::Utils() : m_matrix(nullptr),
 void Utils::setup(MatrixPanel_I2S_DMA* matrix_ptr) {
     m_matrix = matrix_ptr;
 
-    Serial.println("Utils: Initializing GPIO pins...");
+    Serial.println("\nUtils: Initializing GPIO pins...");
     
     // Configure all GPIO pins with appropriate modes
     pinMode(STATUS_LED_PIN, OUTPUT);      // Status LED output

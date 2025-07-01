@@ -83,6 +83,22 @@ private:
     char currentKeyName[32];
     int totalLearnedKeys;
     uint32_t duplicateIRCode;
+
+    // 추가된 멤버 변수
+    char inputBuffer[64];  // 입력 버퍼
+    int bufferIndex;       // 현재 버퍼 인덱스
+    bool handleRealTimeInput(); // 실시간 입력 처리 함수
+    
+    // 스캔 상태 관리
+    enum class ScanState {
+        WAITING_FOR_INPUT,    // 키 이름 입력 대기
+        SCANNING_IR,         // IR 신호 스캔 중
+        PROCESSING_RESULT    // 결과 처리 중
+    };
+    
+    ScanState scanState;
+    unsigned long scanStartTime;
+    bool irScanInitiated;
 };
 
 #endif // MODE_IR_SCAN_H

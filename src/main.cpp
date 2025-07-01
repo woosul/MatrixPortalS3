@@ -184,9 +184,9 @@ static void drawSetupProgressBar(uint8_t progress, unsigned long startTime, Matr
 
     // Progress bar dimensions and positioning
     int barBaseX = 2;
-    int barY = 60;
+    int barY = 62;
     int barWidthMax = MATRIX_WIDTH - (2 * barBaseX);
-    int barHeight = 2;
+    int barHeight = 1;
 
     // Calculate current progress bar width
     int currentBarWidth = (barWidthMax * progress) / 100;
@@ -230,7 +230,7 @@ static void drawSetupProgressBar(uint8_t progress, unsigned long startTime, Matr
     
     // Right-align time text with margin
     int textX_logical = MATRIX_WIDTH - w - 2;
-    int textY_top = 53;
+    int textY_top = 55;
 
     // Draw progress bar if there's any progress
     if (currentBarWidth > 0) {
@@ -256,7 +256,7 @@ void loadConfiguration() {
     // Serial.println("Attempting to load configuration from LittleFS..."); // DEBUG
     if (!LittleFS.begin(true)) { // true to format LittleFS if mount fails
         Serial.println("LittleFS Mount Failed. Using default configuration.");
-        Serial.println("--- DEBUG: loadConfiguration() exiting due to LittleFS mount failure ---");
+        // Serial.println("--- DEBUG: loadConfiguration() exiting due to LittleFS mount failure ---");
         // Stick with hardcoded defaults if LittleFS fails
         return;
     }
@@ -279,7 +279,7 @@ void loadConfiguration() {
             Serial.print(F("deserializeJson() failed: "));
             Serial.println(error.f_str());
             Serial.println("Using default configuration and attempting to save defaults.");
-            Serial.println("--- DEBUG: loadConfiguration() will call saveConfiguration() due to JSON parse error ---");
+            // Serial.println("--- DEBUG: loadConfiguration() will call saveConfiguration() due to JSON parse error ---");
             saveConfiguration(); // Create a default config file if parsing fails
             return;
         }
@@ -307,7 +307,7 @@ void loadConfiguration() {
         Serial.printf("Configuration loaded from LittleFS: (%s)\n", CONFIG_FILE_PATH);
         // Serial.println("--- DEBUG: loadConfiguration() successfully loaded and parsed config.json ---");
     } else {
-        Serial.printf("--- DEBUG: Config file '%s' not found. Saving default configuration to LittleFS.---\n", CONFIG_FILE_PATH);
+        Serial.printf("DEBUG: Config file '%s' not found. Saving default configuration to LittleFS.---\n", CONFIG_FILE_PATH);
         saveConfiguration(); // Create and save default config if not found
     }
     
@@ -448,7 +448,7 @@ void handleModeChangeRequest(const char* modeString) {
  * Enables the display and sets initial brightness level.
  */
 void setupMatrixDisplay() {
-    Serial.printf("Initializing %dx%d display...\n", MATRIX_WIDTH, MATRIX_HEIGHT);
+    Serial.printf("\nInitializing %dx%d display...\n", MATRIX_WIDTH, MATRIX_HEIGHT);
     HUB75_I2S_CFG mxconfig(MATRIX_WIDTH, MATRIX_HEIGHT, MATRIX_CHAIN);
     // Use pin definitions from config.h
     mxconfig.gpio.r1 = R1_PIN; mxconfig.gpio.g1 = G1_PIN; mxconfig.gpio.b1 = B1_PIN;
@@ -507,7 +507,7 @@ void setup() {
     lastLogTime = currentTime;
 
     // Initialize display hardware, MatrixPanel_I2S_DMA, and Utils
-    Serial.println("########## Matrix Portal S3 Starting... ##########");
+    Serial.println("\n########## Matrix Portal S3 Starting... ##########");
     // 1. setupMatrixDisplay() is done here. Progress: 10%
     setupMatrixDisplay();
 
@@ -530,9 +530,9 @@ void setup() {
     drawSetupProgressBar(totalProgress, setupStartTime, dma_display, &utils);
 
     // Log the time taken to set the module ------------------------------------------
-    currentTime = millis();
-    Serial.printf("--- Setup - Display and Utils Initialized: %lu ms, Total: %lu ms\n\n", currentTime - lastLogTime, currentTime - setupStartTime);
-    lastLogTime = currentTime;
+    // currentTime = millis();
+    // Serial.printf("--- Setup - Display and Utils Initialized: %lu ms, Total: %lu ms\n\n", currentTime - lastLogTime, currentTime - setupStartTime);
+    // lastLogTime = currentTime;
 
     // Initialize IRManager (pass Utils object address)
     irManager.setup(&utils);          // 'utils' is a just object and make pointer variable with '&' for Utils object.
@@ -555,9 +555,9 @@ void setup() {
     #endif
 
     // Log the time taken to set the module ------------------------------------------
-    currentTime = millis();
-    Serial.printf("--- Setup - IRManager Initialized & Mode Set: %lu ms, Total: %lu ms\n\n", currentTime - lastLogTime, currentTime - setupStartTime);
-    lastLogTime = currentTime;
+    // currentTime = millis();
+    // Serial.printf("--- Setup - IRManager Initialized & Mode Set: %lu ms, Total: %lu ms\n\n", currentTime - lastLogTime, currentTime - setupStartTime);
+    // lastLogTime = currentTime;
 
     // Connect to WiFi and ensure network and time synchronization
     // 4. ensureNetworkAndTime broken down for progress:
@@ -567,7 +567,7 @@ void setup() {
         totalProgress += 20;
         drawSetupProgressBar(totalProgress, setupStartTime, dma_display, &utils);
     } else {
-        Serial.println("--- Setup: WiFi connection failed. Progress for MQTT/NTP might be affected.");
+        Serial.println("Setup: WiFi connection failed. Progress for MQTT/NTP might be affected.");
     }
 
     // 4.b. MQTT: 20%
@@ -576,7 +576,7 @@ void setup() {
             totalProgress += 20;
             drawSetupProgressBar(totalProgress, setupStartTime, dma_display, &utils);
         } else {
-            Serial.println("--- Setup: MQTT connection failed.");
+            Serial.println("Setup: MQTT connection failed.");
         }
     }
 
@@ -602,9 +602,9 @@ void setup() {
     drawSetupProgressBar(totalProgress, setupStartTime, dma_display, &utils);
 
     // Log the time taken to set the module ------------------------------------------
-    currentTime = millis();
-    Serial.printf("--- Setup - Core Initializations Done (Modes will setup on entry): %lu ms, Total: %lu ms\n\n", currentTime - lastLogTime, currentTime - setupStartTime);
-    lastLogTime = currentTime;
+    // currentTime = millis();
+    // Serial.printf("--- Setup - Core Initializations Done (Modes will setup on entry): %lu ms, Total: %lu ms\n\n", currentTime - lastLogTime, currentTime - setupStartTime);
+    // lastLogTime = currentTime;
 
     // 6. utils.playScaleTone(). Progress: 5%
     // Play scale tone first, then switch to initial mode
@@ -615,9 +615,9 @@ void setup() {
     Serial.println("Setup and initialization complete!");
 
     // Log the time taken to set the module ------------------------------------------
-    currentTime = millis();
-    Serial.printf("--- Setup - Scale Tone Played: %lu ms, Total: %lu ms\n\n", currentTime - lastLogTime, currentTime - setupStartTime);
-    lastLogTime = currentTime;
+    // currentTime = millis();
+    // Serial.printf("--- Setup - Scale Tone Played: %lu ms, Total: %lu ms\n\n", currentTime - lastLogTime, currentTime - setupStartTime);
+    // lastLogTime = currentTime;
 
     // Display progress at 100% and wait briefly
     drawSetupProgressBar(100, setupStartTime, dma_display, &utils);
@@ -626,9 +626,9 @@ void setup() {
     // Switch to initial mode - this call is moved to the end of setup()
     // switchMode(MODE_CLOCK);
 
-    currentTime = millis(); // Measure time after switchMode completion
+    // currentTime = millis(); // Measure time after switchMode completion
     // Serial.printf("--- Setup - Initial Mode Switched: %lu ms, Total: %lu ms\n\n", currentTime - lastLogTime, currentTime - setupStartTime);
-    Serial.printf("--- Total Setup Time: %lu ms\n\n", currentTime - setupStartTime);
+    // Serial.printf("--- Total Setup Time: %lu ms\n\n", currentTime - setupStartTime);
 
     g_setupCompleteTime = millis(); // Record the time setup completes
     g_systemInitializing = true;    // Ensure it's true as setup finishes
@@ -985,12 +985,12 @@ void connectWiFi() {
     uint8_t* bestBSSID = nullptr; // Move declaration outside so it's visible below
 
     if (WIFI_USE_BEST_SIGNAL) {
-        Serial.println("Scanning for best WiFi signal...");
+        Serial.println("\nScanning for best WiFi signal...");
         int n = WiFi.scanNetworks();
         
-        wifiCurrentTime = millis();
-        Serial.printf("--- WiFi - Scan Complete: %lu ms, Total: %lu ms\n\n", wifiCurrentTime - wifiLastLogTime, wifiCurrentTime - wifiStartTime);
-        wifiLastLogTime = wifiCurrentTime;
+        // wifiCurrentTime = millis();
+        // Serial.printf("WiFi - Scan Complete: %lu ms, Total: %lu ms\n\n", wifiCurrentTime - wifiLastLogTime, wifiCurrentTime - wifiStartTime);
+        // wifiLastLogTime = wifiCurrentTime;
 
         int bestRSSI = -100;
         int bestNetwork = -1;
@@ -1045,8 +1045,8 @@ void connectWiFi() {
         // if (utils.isSoundFeedbackEnabled()) utils.playErrorTone();
     }
     
-    wifiCurrentTime = millis();
-    Serial.printf("--- WiFi - Connection Process Finished: %lu ms, Total WiFi Setup: %lu ms\n\n", wifiCurrentTime - wifiStartTime, wifiCurrentTime - wifiStartTime);
+    // wifiCurrentTime = millis();
+    // Serial.printf("WiFi - Connection Process Finished: %lu ms, Total WiFi Setup: %lu ms\n\n", wifiCurrentTime - wifiStartTime, wifiCurrentTime - wifiStartTime);
 }
 
 /**
@@ -1068,11 +1068,11 @@ bool connectMQTT() {
         return false;
     }
 
-    Serial.println("MQTT - Setting up client...");
+    Serial.println("\nMQTT - Setting up client...");
     
-    mqttCurrentTime = millis();
+    // mqttCurrentTime = millis();
     // Serial.printf("--- MQTT - Client Setup: %lu ms, Total: %lu ms\n\n", mqttCurrentTime - mqttLastLogTime, mqttCurrentTime - mqttStartTime);
-    mqttLastLogTime = mqttCurrentTime;
+    // mqttLastLogTime = mqttCurrentTime;
     
     mqttClient.setServer(g_mqttServer, g_mqttPort); // Use loaded MQTT server info
     mqttClient.setKeepAlive(60);  // KeepAlive 60 seconds
@@ -1096,8 +1096,8 @@ bool connectMQTT() {
             g_lastMqttConnectTime = millis(); // Record MQTT connection time
             lastMqttActivity = millis();
             
-            mqttCurrentTime = millis();
-            Serial.printf("--- MQTT - Connected & Subscribed: %lu ms, Total MQTT Setup: %lu ms\n\n", mqttCurrentTime - mqttLastLogTime, mqttCurrentTime - mqttStartTime);
+            // mqttCurrentTime = millis();
+            // Serial.printf("MQTT - Connected & Subscribed: %lu ms, Total MQTT Setup: %lu ms\n\n", mqttCurrentTime - mqttLastLogTime, mqttCurrentTime - mqttStartTime);
             
             return true;
         } else {
@@ -1107,13 +1107,13 @@ bool connectMQTT() {
             delay(2000);
             
             mqttCurrentTime = millis();
-            Serial.printf("--- MQTT - Attempt %d Failed & Waited: %lu ms, Loop Total: %lu ms\n\n", attempts, mqttCurrentTime - mqttLastLogTime, mqttCurrentTime - mqttStartTime);
+            Serial.printf("MQTT - Attempt %d Failed & Waited: %lu ms, Loop Total: %lu ms\n\n", attempts, mqttCurrentTime - mqttLastLogTime, mqttCurrentTime - mqttStartTime);
             mqttLastLogTime = mqttCurrentTime;
         }
     }
     Serial.println("MQTT connection failed after several attempts.");
-    mqttCurrentTime = millis();
-    // Serial.printf("--- MQTT - Connection Process Finished (Failed): %lu ms, Total MQTT Setup: %lu ms\n", mqttCurrentTime - mqttStartTime, mqttCurrentTime - mqttStartTime);
+    // mqttCurrentTime = millis();
+    // Serial.printf("MQTT - Connection Process Finished (Failed): %lu ms, Total MQTT Setup: %lu ms\n", mqttCurrentTime - mqttStartTime, mqttCurrentTime - mqttStartTime);
     return false;
 }
 
@@ -1251,12 +1251,12 @@ void setupTime() {
     unsigned long ntpLastLogTime = ntpStartTime;
     unsigned long ntpCurrentTime;
 
-    Serial.println("Setting up NTP time sync...");
+    Serial.println("\nSetting up NTP time sync...");
     // Use timezone and NTP server info from config.h
     configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER_1, NTP_SERVER_2, NTP_SERVER_3);
     
     ntpCurrentTime = millis();
-    // Serial.printf("--- NTP - configTime Called: %lu ms, Total: %lu ms\n", ntpCurrentTime - ntpLastLogTime, ntpCurrentTime - ntpStartTime);
+    // Serial.printf("NTP - configTime Called: %lu ms, Total: %lu ms\n", ntpCurrentTime - ntpLastLogTime, ntpCurrentTime - ntpStartTime);
     ntpLastLogTime = ntpCurrentTime;
 
     int attempts = 0;
@@ -1265,22 +1265,22 @@ void setupTime() {
         Serial.print(".");
         delay(1000); // Wait for NTP response
         
-        ntpCurrentTime = millis();
-        // Serial.printf("\n--- NTP - Attempt %d getLocalTime Failed & Waited: %lu ms, Loop Total: %lu ms\n", attempts + 1, ntpCurrentTime - ntpLastLogTime, ntpCurrentTime - ntpStartTime);
-        ntpLastLogTime = ntpCurrentTime;
+        // ntpCurrentTime = millis();
+        // Serial.printf("\nNTP - Attempt %d getLocalTime Failed & Waited: %lu ms, Loop Total: %lu ms\n", attempts + 1, ntpCurrentTime - ntpLastLogTime, ntpCurrentTime - ntpStartTime);
+        // ntpLastLogTime = ntpCurrentTime;
         attempts++;
     }
 
     if (getLocalTime(&timeinfo)) {
-        Serial.println("\nNTP time sync successful!");
+        Serial.println("NTP time sync successful!");
         Serial.printf("Current time: %04d-%02d-%02d %02d:%02d:%02d\n",
                     timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
                     timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
     } else {
         Serial.println("\nNTP time sync failed! Using system boot time.");
     }
-    ntpCurrentTime = millis();
-    Serial.printf("--- NTP - Sync Process Finished: %lu ms, Total NTP Setup: %lu ms\n\n", ntpCurrentTime - ntpStartTime, ntpCurrentTime - ntpStartTime);
+    // ntpCurrentTime = millis();
+    // Serial.printf("NTP - Sync Process Finished: %lu ms, Total NTP Setup: %lu ms\n\n", ntpCurrentTime - ntpStartTime, ntpCurrentTime - ntpStartTime);
 }
 
 /**
