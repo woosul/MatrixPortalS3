@@ -4,12 +4,24 @@
 #include "ir_manager.h"
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
+/**
+ * @brief Constructor for ModeIRScan class
+ * 
+ * Initializes the IR scan mode with default values and prepares
+ * the learning key storage array.
+ */
 ModeIRScan::ModeIRScan() : m_irManager(nullptr), selectedMode(YAHBOOM_BLOCKING_MODE), 
                            isFirstRun(true), duplicateIRCode(0) {
     totalLearnedKeys = 0;
     strcpy(currentKeyName, "");
 }
 
+/**
+ * @brief Initialize the IR scan mode with required component references
+ * 
+ * Sets up the mode with pointers to utility functions, matrix display,
+ * and IR manager. Initializes all internal state variables and storage arrays.
+ */
 void ModeIRScan::setup(Utils* utils_ptr, MatrixPanel_I2S_DMA* matrix_ptr, IRManager* irManager_ptr) {
     m_utils = utils_ptr;
     m_matrix = matrix_ptr;
@@ -19,16 +31,16 @@ void ModeIRScan::setup(Utils* utils_ptr, MatrixPanel_I2S_DMA* matrix_ptr, IRMana
     selectedMode = YAHBOOM_BLOCKING_MODE; 
     totalLearnedKeys = 0;
     
-    // 입력 버퍼 초기화
+    // Initialize input buffer for real-time processing
     bufferIndex = 0;
     inputBuffer[0] = '\0';
     
-    // 스캔 상태 초기화
+    // Initialize IR scan state management
     scanState = ScanState::WAITING_FOR_INPUT;
     scanStartTime = 0;
     irScanInitiated = false;
 
-    // Learned key array initialization
+    // Initialize learned key storage array
     for (int i = 0; i < 50; i++) {
         keys[i].isValid = false;
         strcpy(keys[i].keyName, "");
@@ -38,25 +50,40 @@ void ModeIRScan::setup(Utils* utils_ptr, MatrixPanel_I2S_DMA* matrix_ptr, IRMana
     Serial.println("IR Scan mode ready.");
 }
 
+/**
+ * @brief Main execution loop for IR scan mode
+ * 
+ * Handles the initial display and guide on first run, then manages
+ * different operational states including READY state for command input
+ * and internal loop for active learning processes.
+ */
 void ModeIRScan::run() {
     if (isFirstRun) {
-        updateDisplay();  // Display initial "READY" state in run()
+        // Display initial state and show usage guide on first execution
+        updateDisplay();
         showGuide();
         isFirstRun = false;
     }
 
-    // Process READY state: Only serial input is handled, and IR signals controlled by the main are received.
+    // Handle READY state: Process serial input and receive IR signals from main loop
     if (learningState == READY) {
-        handleRealTimeInput(); // 실시간 입력 처리로 변경
+        // Process real-time user input
+        handleRealTimeInput();
         updateDisplay();
     } else {
-        // Enter SCAN mode only through the SCAN command
+        // Enter internal loop only when transitioning from READY via SCAN command
         runInternalLoop();
     }
 }
 
+/**
+ * @brief Internal processing loop for active learning operations
+ * 
+ * Continues processing until EXIT_MODE is reached, handling real-time input
+ * and IR scanning operations with periodic display updates.
+ */
 void ModeIRScan::runInternalLoop() {
-    // EXIT_MODE가 될 때까지만 루프 (READY 체크 제거)
+    // Continue loop until EXIT_MODE is requested
     while (learningState != EXIT_MODE) {
         handleRealTimeInput();
         
@@ -71,11 +98,18 @@ void ModeIRScan::runInternalLoop() {
     Serial.println("Exiting IR Scan internal loop...");
 }
 
+/**
+ * @brief Process and route user input commands to appropriate handlers
+ * 
+ * Parses user input and routes to the correct handler based on current state.
+ * Handles global commands that are available in any state, as well as
+ * state-specific commands.
+ */
 void ModeIRScan::processUserInput(const String& input) {
-    // 입력 처리 전에 줄바꿈 추가하여 다음 출력이 새 줄에서 시작되도록 함
+    // Add newline before processing to ensure clean output formatting
     Serial.println();
     
-    // Global commands : can input at any time (in input)
+    // Handle global commands that are available in any state
     if (input == "SUMMARY") {
         showSummary();
         return;
@@ -104,7 +138,7 @@ void ModeIRScan::processUserInput(const String& input) {
         return;
     }
     
-    // 상태별 처리
+    // Handle state-specific commands
     switch (learningState) {
         case READY:
             Serial.println("Invalid command in READY state!");
@@ -130,12 +164,18 @@ void ModeIRScan::processUserInput(const String& input) {
     }
 }
 
+/**
+ * @brief Handle IR key name input and validate before starting scan
+ * 
+ * Validates the provided key name and transitions to SCAN state if valid.
+ * Initializes scan state variables for the IR signal reception process.
+ */
 void ModeIRScan::handleKeyNameInput(const String& input) {
     if (isValidKeyName(input.c_str())) {
         strcpy(currentKeyName, input.c_str());
         learningState = SCAN;
         
-        // 스캔 상태 초기화
+        // Initialize scan state variables
         scanState = ScanState::WAITING_FOR_INPUT;
         scanStartTime = 0;
         irScanInitiated = false;
@@ -148,12 +188,23 @@ void ModeIRScan::handleKeyNameInput(const String& input) {
     }
 }
 
+/**
+ * @brief Initialize key learning scan mode
+ * 
+ * Transitions to KEY_INPUT state and prompts user for IR key name input.
+ */
 void ModeIRScan::startScanMode() {
     learningState = KEY_INPUT;
     updateDisplay();
     showPrompt();
 }
 
+/**
+ * @brief Handle mode selection command and display available options
+ * 
+ * Transitions to MODE_SELECT state and displays current mode along with
+ * available IR reception mode options.
+ */
 void ModeIRScan::handleModeCommand() {
     learningState = MODE_SELECT;
     const char* currentModeStr = (selectedMode == YAHBOOM_BLOCKING_MODE) ? "YAHBOOM-Blocking" : "NEC-Non-blocking";
@@ -163,12 +214,13 @@ void ModeIRScan::handleModeCommand() {
     showPrompt();
 }
 
+/**
+ * @brief Handle user selection of IR reception mode
+ * 
+ * Processes user input for mode selection and updates the selected IR mode.
+ * Returns to READY state after successful mode selection.
+ */
 void ModeIRScan::handleModeSelection(const String& input) {
-    // 에코 제거
-    // if (input.length() > 0) {
-    //     Serial.println(input);
-    // }
-    
     if (input == "1") {
         selectedMode = YAHBOOM_BLOCKING_MODE;
         Serial.println("YAHBOOM-Blocking mode selected");
@@ -186,12 +238,13 @@ void ModeIRScan::handleModeSelection(const String& input) {
     showPrompt();
 }
 
+/**
+ * @brief Handle user confirmation for duplicate IR code overwrites
+ * 
+ * Processes user confirmation (Y/N) when a duplicate IR code is detected
+ * and either updates the existing key or cancels the operation.
+ */
 void ModeIRScan::handleDuplicateChoice(const String& input) {
-    // 에코 제거
-    // if (input.length() > 0) {
-    //     Serial.println(input);
-    // }
-    
     if (input == "Y" || input == "YES") {
         if (storeKey(currentKeyName, duplicateIRCode)) {
             Serial.printf("Key '%s' updated!\n", currentKeyName);
@@ -203,20 +256,25 @@ void ModeIRScan::handleDuplicateChoice(const String& input) {
     
     learningState = KEY_INPUT;
     updateDisplay();
-    // Serial.println("Ready for next key. Enter key name or DONE to finish:");
     showPrompt();
 }
 
+/**
+ * @brief Main IR signal scanning and reception handler
+ * 
+ * Manages the IR scanning process using state machine logic to handle
+ * both blocking and non-blocking IR reception modes with timeout handling.
+ */
 void ModeIRScan::handleIRScan() {
     if (!m_irManager) return;
     
     bool codeReceived = false;
     uint32_t receivedCode = 0;
     
-    // 상태 기반 스캔 제어
+    // State-based scan control
     switch (scanState) {
         case ScanState::WAITING_FOR_INPUT:
-            // 스캔 시작
+            // Initialize scan process
             scanState = ScanState::SCANNING_IR;
             scanStartTime = millis();
             irScanInitiated = false;
@@ -225,24 +283,25 @@ void ModeIRScan::handleIRScan() {
         case ScanState::SCANNING_IR:
             if (selectedMode == YAHBOOM_BLOCKING_MODE) {
                 if (!irScanInitiated) {
-                    // 블로킹 모드: 한 번만 스캔 시작
+                    // Blocking mode: Initialize scan once
                     m_irManager->setReceiveMode(IRManager::IRReceiveMode::YAHBOOM_BLOCKING);
                     m_irManager->enableScanMode(true);
                     m_irManager->clearCommand();
                     irScanInitiated = true;
                 }
                 
-                // 타임아웃 체크 (10초)
+                // Check for timeout (10 seconds)
                 if (millis() - scanStartTime > 10000) {
                     scanState = ScanState::WAITING_FOR_INPUT;
                     irScanInitiated = false;
-                    learningState = KEY_INPUT;  // 키 입력 대기 상태로 변경
+                    learningState = KEY_INPUT;
                     Serial.println("IR scan timeout. Ready for next key name.");
                     showPrompt();
                     return;
                 }
                 
-                m_irManager->readRawCodeYahboom(100); // 짧은 타임아웃으로 체크
+                // Check for received IR signal with short timeout
+                m_irManager->readRawCodeYahboom(100);
                 
                 if (m_irManager->hasNewCommand()) {
                     receivedCode = m_irManager->getLastCommand();
@@ -250,18 +309,18 @@ void ModeIRScan::handleIRScan() {
                     scanState = ScanState::PROCESSING_RESULT;
                 }
             } else {
-                // NEC 논블로킹 모드
+                // NEC non-blocking mode
                 if (!irScanInitiated) {
                     m_irManager->setReceiveMode(IRManager::IRReceiveMode::NEC_NON_BLOCKING);
                     m_irManager->enableScanMode(true);
                     irScanInitiated = true;
                 }
                 
-                // 타임아웃 체크 (10초)
+                // Check for timeout (10 seconds)
                 if (millis() - scanStartTime > 10000) {
                     scanState = ScanState::WAITING_FOR_INPUT;
                     irScanInitiated = false;
-                    learningState = KEY_INPUT;  // 키 입력 대기 상태로 변경
+                    learningState = KEY_INPUT;
                     Serial.println("IR scan timeout. Ready for next key name.");
                     showPrompt();
                     return;
@@ -279,7 +338,7 @@ void ModeIRScan::handleIRScan() {
             break;
             
         case ScanState::PROCESSING_RESULT:
-            // 결과 처리 완료 후 다음 입력 대기 상태로 전환
+            // Reset to waiting state after result processing
             scanState = ScanState::WAITING_FOR_INPUT;
             irScanInitiated = false;
             break;
@@ -290,11 +349,17 @@ void ModeIRScan::handleIRScan() {
     }
 }
 
+/**
+ * @brief Process received IR code and handle storage or duplicates
+ * 
+ * Processes the received IR code by checking for duplicates and either
+ * storing the new key or prompting for confirmation to overwrite existing keys.
+ */
 void ModeIRScan::processReceivedCode(uint32_t code) {
-    // IR 코드 처리 후 즉시 클리어 (main에서 재처리 방지)
+    // Clear IR command immediately after processing to prevent reprocessing in main loop
     m_irManager->clearCommand();
     
-    // Duplicate check
+    // Check for duplicate IR codes
     if (isDuplicateCode(code)) {
         Serial.printf("Warning: Code 0x%02X already exists!\n", code);
         duplicateIRCode = code;
@@ -304,7 +369,7 @@ void ModeIRScan::processReceivedCode(uint32_t code) {
         return;
     }
 
-    // Store key
+    // Store the new key
     if (storeKey(currentKeyName, code)) {
         m_utils->playSingleTone();
     } else {
@@ -312,10 +377,10 @@ void ModeIRScan::processReceivedCode(uint32_t code) {
         m_utils->playErrorTone();
     }
     
-    // SCAN 모드 지속: KEY_INPUT 상태로 변경하여 다음 키 이름 입력 대기
+    // Continue SCAN mode: Return to KEY_INPUT state for next key name
     learningState = KEY_INPUT;
     
-    // 스캔 상태 초기화
+    // Reset scan state variables
     scanState = ScanState::WAITING_FOR_INPUT;
     irScanInitiated = false;
     
@@ -323,10 +388,17 @@ void ModeIRScan::processReceivedCode(uint32_t code) {
     showPrompt();
 }
 
+/**
+ * @brief Store a learned IR key in the internal storage array
+ * 
+ * Stores the provided key name and IR code, either updating an existing
+ * key or creating a new entry if space is available.
+ */
 bool ModeIRScan::storeKey(const char* keyName, uint32_t irCode) {
     int index = findKeyIndex(keyName);
     
     if (index < 0) {
+        // Find empty slot for new key
         index = findEmptySlot();
         if (index < 0) {
             Serial.println("No space available!");
@@ -343,12 +415,18 @@ bool ModeIRScan::storeKey(const char* keyName, uint32_t irCode) {
     return true;
 }
 
+/**
+ * @brief Validate IR key name according to naming conventions
+ * 
+ * Checks that the key name meets requirements: non-empty, within length limits,
+ * starts with alphanumeric character, and contains only alphanumeric characters and underscores.
+ */
 bool ModeIRScan::isValidKeyName(const char* keyName) {
     if (!keyName || strlen(keyName) == 0 || strlen(keyName) >= 32) {
         return false;
     }
 
-    // First character must be alphanumeric (alphabet or digit)
+    // First character must be alphanumeric
     if (!isalnum(keyName[0])) return false;
 
     // Remaining characters must be alphanumeric or underscore
@@ -361,6 +439,12 @@ bool ModeIRScan::isValidKeyName(const char* keyName) {
     return true;
 }
 
+/**
+ * @brief Find the storage index of a key by name (case-insensitive)
+ * 
+ * Searches the learned keys array for a key with the specified name.
+ * Returns the index if found, -1 if not found.
+ */
 int ModeIRScan::findKeyIndex(const char* keyName) {
     for (int i = 0; i < 50; i++) {
         if (keys[i].isValid && strcasecmp(keys[i].keyName, keyName) == 0) {
@@ -370,6 +454,12 @@ int ModeIRScan::findKeyIndex(const char* keyName) {
     return -1;
 }
 
+/**
+ * @brief Find the first available empty slot in the key storage array
+ * 
+ * Searches for the first invalid/empty slot that can be used for storing
+ * a new learned key. Returns the index if found, -1 if storage is full.
+ */
 int ModeIRScan::findEmptySlot() {
     for (int i = 0; i < 50; i++) {
         if (!keys[i].isValid) {
@@ -379,6 +469,12 @@ int ModeIRScan::findEmptySlot() {
     return -1;
 }
 
+/**
+ * @brief Check if an IR code already exists in the learned keys
+ * 
+ * Searches through all valid learned keys to determine if the specified
+ * IR code has already been stored.
+ */
 bool ModeIRScan::isDuplicateCode(uint32_t irCode) {
     for (int i = 0; i < 50; i++) {
         if (keys[i].isValid && keys[i].irCode == irCode) {
@@ -388,6 +484,12 @@ bool ModeIRScan::isDuplicateCode(uint32_t irCode) {
     return false;
 }
 
+/**
+ * @brief Display usage instructions and available commands
+ * 
+ * Shows the user guide with all available commands and their descriptions
+ * for the IR learning mode.
+ */
 void ModeIRScan::showGuide() {
     Serial.println("IR REMOTE LEARNING MODE");
     Serial.println("---------------------------------------------------------------------");
@@ -402,6 +504,12 @@ void ModeIRScan::showGuide() {
     showPrompt();
 }
 
+/**
+ * @brief Display summary of all learned IR keys
+ * 
+ * Shows a formatted list of all successfully learned keys with their
+ * associated IR codes and displays the total count.
+ */
 void ModeIRScan::showSummary() {
     Serial.println();
     Serial.println("# LEARNED KEYS ----------------");
@@ -418,6 +526,12 @@ void ModeIRScan::showSummary() {
     showPrompt();
 }
 
+/**
+ * @brief Generate config.h format definitions for learned IR keys
+ * 
+ * Outputs all learned keys in C preprocessor #define format suitable
+ * for inclusion in config.h files. Plays feedback tones based on success.
+ */
 void ModeIRScan::updateCodes() {
     if (!m_irManager) {
         Serial.println("ERROR: IRManager not set!");
@@ -442,12 +556,19 @@ void ModeIRScan::updateCodes() {
     } else {
         m_utils->playErrorTone();
     }
-    Serial.println(); // Add a newline for clean formatting before the next prompt.
+    // Add newline for clean formatting before next prompt
+    Serial.println();
     showPrompt();
 }
 
+/**
+ * @brief Clear all learned IR keys from storage
+ * 
+ * Resets the entire learned keys array and counter, effectively
+ * clearing all previously stored IR key mappings.
+ */
 void ModeIRScan::clearKeys() {
-    // Initialize current session key storage (Keys)
+    // Reset all key storage slots
     for (int i = 0; i < 50; i++) {
         keys[i].isValid = false;
         strcpy(keys[i].keyName, "");
@@ -455,11 +576,17 @@ void ModeIRScan::clearKeys() {
     }
     totalLearnedKeys = 0;
     
-    Serial.println("All learned keys cleared. "); // Use println to ensure a newline.
+    Serial.println("All learned keys cleared.");
     m_utils->playSingleTone();
     showPrompt();
 }
 
+/**
+ * @brief Display appropriate input prompt based on current learning state
+ * 
+ * Shows context-appropriate prompts and available commands based on
+ * the current operational state and selected IR mode.
+ */
 void ModeIRScan::showPrompt() {
     const char* modeStr = (selectedMode == YAHBOOM_BLOCKING_MODE) ? "(Blocking)" : "(Non-blocking)";
     
@@ -484,6 +611,12 @@ void ModeIRScan::showPrompt() {
     }
 }
 
+/**
+ * @brief Update the LED matrix display with current operational status
+ * 
+ * Periodically updates the matrix display with the current learning state
+ * to provide visual feedback to the user.
+ */
 void ModeIRScan::updateDisplay() {
     static unsigned long lastUpdate = 0;
     if (millis() - lastUpdate > 1000) {
@@ -500,6 +633,12 @@ void ModeIRScan::updateDisplay() {
     }
 }
 
+/**
+ * @brief Display current scan phase on LED matrix
+ * 
+ * Renders the IR scan status information on the LED matrix display
+ * with appropriate colors and positioning.
+ */
 void ModeIRScan::scanProcessDisplay(const char* phaseText) {
     m_matrix->fillScreen(0);
 
@@ -510,48 +649,59 @@ void ModeIRScan::scanProcessDisplay(const char* phaseText) {
     int str1_x = m_utils->calculateTextCenterX(str1, MATRIX_WIDTH);
     int str2_x = m_utils->calculateTextCenterX(str2, MATRIX_WIDTH);
     
-    m_matrix->setTextColor(m_utils->hexToRgb565(0x808080)); // Gray
+    // Display "IR SCAN" in gray
+    m_matrix->setTextColor(m_utils->hexToRgb565(0x808080));
     m_utils->setCursorTopBased(str1_x, 4, false);
     m_matrix->print(str1);
     
-    m_matrix->setTextColor(m_utils->hexToRgb565(0xFFFFFF)); // White
+    // Display current phase in white
+    m_matrix->setTextColor(m_utils->hexToRgb565(0xFFFFFF));
     m_utils->setCursorTopBased(str2_x, 28, false);
     m_matrix->print(str2);
     
     m_utils->displayShow();
 }
 
+/**
+ * @brief Clean up resources and reset IR manager when exiting mode
+ * 
+ * Performs cleanup operations including clearing any remaining IR commands,
+ * resetting the IR manager to default mode, and clearing the display.
+ */
 void ModeIRScan::cleanup() {
     Serial.println("IR Scan mode cleanup.");
     if (m_irManager) {
-        // enableScanMode(false) 호출 제거 - 기존 IR 코드 맵 출력을 방지
-        // m_irManager->enableScanMode(false);
-        
-        // IR 스캔 모드에서 학습된 명령들을 모두 클리어
+        // Clear any learned commands from IR scan mode
         m_irManager->clearCommand();
         
-        // 혹시 남아있을 수 있는 추가 명령들도 클리어
+        // Clear any additional remaining commands
         while (m_irManager->hasNewCommand()) {
-            m_irManager->getLastCommand();  // 명령 읽어서 소비
-            m_irManager->clearCommand();     // 추가 클리어
+            // Consume remaining commands
+            m_irManager->getLastCommand();
+            m_irManager->clearCommand();
         }
         
-        // Reset to default mode
+        // Reset to default IR reception mode
         #if defined(USE_YAHBOOM_IR_BLOCKING_MODE)
             m_irManager->setReceiveMode(IRManager::IRReceiveMode::YAHBOOM_BLOCKING);
         #else
             m_irManager->setReceiveMode(IRManager::IRReceiveMode::NEC_NON_BLOCKING);
         #endif
-        
-        // 최종 클리어
-        // m_irManager->clearCommand();
     }
+    
+    // Clear display and provide audio feedback
     m_matrix->fillScreen(0);
     m_utils->displayShow();
     m_utils->playSingleTone();
 }
 
-// 실시간 키보드 입력 처리 함수
+/**
+ * @brief Handle real-time keyboard input with immediate character echo
+ * 
+ * Processes individual characters from serial input, handling backspace,
+ * enter key, and printable characters. Provides immediate echo feedback
+ * and processes complete lines when enter is pressed.
+ */
 bool ModeIRScan::handleRealTimeInput() {
     if (!Serial.available()) {
         return false;
@@ -559,17 +709,18 @@ bool ModeIRScan::handleRealTimeInput() {
     
     char c = Serial.read();
     
-    // 백스페이스 처리
-    if (c == '\b' || c == 127) { // 백스페이스 또는 DEL
+    // Handle backspace and delete characters
+    if (c == '\b' || c == 127) {
         if (bufferIndex > 0) {
             bufferIndex--;
             inputBuffer[bufferIndex] = '\0';
-            Serial.print("\b \b"); // 백스페이스 에코
+            // Echo backspace sequence to terminal
+            Serial.print("\b \b");
         }
         return false;
     }
     
-    // 엔터 처리
+    // Handle enter key (newline or carriage return)
     if (c == '\n' || c == '\r') {
         if (bufferIndex > 0) {
             inputBuffer[bufferIndex] = '\0';
@@ -577,26 +728,27 @@ bool ModeIRScan::handleRealTimeInput() {
             input.trim();
             input.toUpperCase();
             
-            // 버퍼 초기화
+            // Reset input buffer
             bufferIndex = 0;
             inputBuffer[0] = '\0';
             
-            // 입력 처리 - 줄바꿈 제거로 프롬프트와 같은 줄에 유지
+            // Process the completed input
             processUserInput(input);
             return true;
         } else {
-            // 빈 입력인 경우에도 줄바꿈
+            // Handle empty input with newline
             Serial.println();
         }
         return false;
     }
     
-    // 일반 문자 처리
-    if (c >= 32 && c <= 126 && bufferIndex < 63) { // 출력 가능한 ASCII 문자
+    // Handle printable ASCII characters
+    if (c >= 32 && c <= 126 && bufferIndex < 63) {
         inputBuffer[bufferIndex] = c;
         bufferIndex++;
         inputBuffer[bufferIndex] = '\0';
-        Serial.print(c); // 즉시 에코
+        // Immediate character echo
+        Serial.print(c);
     }
     
     return false;
