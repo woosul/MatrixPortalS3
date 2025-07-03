@@ -65,13 +65,14 @@ void ModeIRScan::run() {
         isFirstRun = false;
     }
 
-    // Handle READY state: Process serial input and receive IR signals from main loop
     if (learningState == READY) {
+        // Handle READY state: Process serial input and receive IR signals from main loop
         // Process real-time user input
         handleRealTimeInput();
         updateDisplay();
-    } else {
+    } else if (learningState != EXIT_MODE) {
         // Enter internal loop only when transitioning from READY via SCAN command
+        // and not in a final EXIT state.
         runInternalLoop();
     }
 }
@@ -84,7 +85,7 @@ void ModeIRScan::run() {
  */
 void ModeIRScan::runInternalLoop() {
     // Continue loop until EXIT_MODE is requested
-    while (learningState != EXIT_MODE) {
+    while (learningState != EXIT_MODE && learningState != READY) {
         handleRealTimeInput();
         
         if (learningState == SCAN) {
@@ -95,7 +96,9 @@ void ModeIRScan::runInternalLoop() {
         delay(10);
     }
     
-    Serial.println("Exiting IR Scan internal loop...");
+    if (learningState == EXIT_MODE) {
+        Serial.println("Exiting IR Scan internal loop...");
+    }
 }
 
 /**
@@ -720,37 +723,58 @@ bool ModeIRScan::handleRealTimeInput() {
         return false;
     }
     
+    static bool lastWasCR = false;
+
     // Handle enter key (newline or carriage return)
     if (c == '\n' || c == '\r') {
+        // Skip LF if previous character was CR (Windows CR+LF handling)
+        if (c == '\n' && lastWasCR) {
+            lastWasCR = false;
+            return false;
+        }
+        
+        lastWasCR = (c == '\r');
+        
         if (bufferIndex > 0) {
+            // Process completed input
             inputBuffer[bufferIndex] = '\0';
             String input = String(inputBuffer);
             input.trim();
             input.toUpperCase();
             
-            // Reset input buffer
             bufferIndex = 0;
             inputBuffer[0] = '\0';
             
-            // Process the completed input
             processUserInput(input);
             return true;
         } else {
-            // Handle empty input with newline
+            // Only output newline once
             Serial.println();
+            return false;
         }
-        return false;
     }
+    lastWasCR = false;
     
     // Handle printable ASCII characters
+    // Protect buffer overflow
     if (c >= 32 && c <= 126 && bufferIndex < 63) {
         inputBuffer[bufferIndex] = c;
         bufferIndex++;
         inputBuffer[bufferIndex] = '\0';
-        // Immediate character echo
         Serial.print(c);
+    } else if (bufferIndex >= 63) {
+        // Buffer overflow warning
+        Serial.println("\nInput too long!");
+        bufferIndex = 0;
+        inputBuffer[0] = '\0';
     }
-    
-    return false;
-}
 
+    // Clarify the meaning of return values
+    if (bufferIndex > 0) {
+        // Process completed input
+        return true;
+    } else {
+        // Process empty input (newline only)
+        return false; 
+    }
+}
